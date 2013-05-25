@@ -1,5 +1,7 @@
 package com.t3hh4xx0r.tag_a_hue;
 
+import java.util.ArrayList;
+
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -34,8 +36,8 @@ public class DBAdapter {
 
 	private static final String CREATE_SWITCHES = "create table "
 			+ SWICTHES + "(_id integer primary key autoincrement, "
-			+ VALUE + " text, " 
-			+ BULB + " text, " 
+			+ VALUE + " text not null, " 
+			+ BULB + " text not null, " 
 			+ "unique(" + VALUE + ") on conflict replace);";
 
 	private final Context context;
@@ -79,6 +81,16 @@ public class DBAdapter {
 	public DBAdapter open() throws SQLException {
 		db = DBHelper.getWritableDatabase();
 		return this;
+	}
+
+	public ArrayList<String> getSwitches() {
+		ArrayList<String> res = new ArrayList<String>();
+		Cursor mCursor = db.query(SWICTHES, new String[] {BULB, VALUE}, null,
+				null, null, null, null, null);
+		while (mCursor.moveToNext()) {
+			res.add(mCursor.getString(1));
+		}
+		return res;
 	}
 
 }
