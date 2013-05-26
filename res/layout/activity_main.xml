@@ -16,6 +16,15 @@
         android:layout_gravity="start"
         android:orientation="vertical" >
 
+        <TextView 
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+			android:textColor="@android:color/white"
+			android:gravity="center"
+			android:textStyle="bold"
+            android:text="Switches For"
+            android:textAppearance="?android:attr/textAppearanceLarge" />
+        
         <Spinner
             android:id="@+id/spinner"
             android:background="@drawable/spinner_default_holo_dark"
