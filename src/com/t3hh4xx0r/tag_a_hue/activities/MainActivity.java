@@ -272,8 +272,11 @@ public class MainActivity extends FragmentActivity implements
 					Toast.LENGTH_LONG).show();
 			return;
 		} else {
-			if ((verifyResult[1] != null)
-					&& !((String) verifyResult[1]).equals("DONE")) {
+			if (((String) verifyResult[1]).equals("DONE")) {
+				db.insertSwitch(id, bulbs.get(curNavPos).getNumber());
+				mDrawerList.setAdapter(new ArrayAdapter<String>(this,
+						R.layout.drawer_list_item, db.getSwitches()));
+			} else if (((String) verifyResult[1]).equals("READY")) {
 				Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
 				if (!writeTag(tag)) {
 					Toast.makeText(getApplicationContext(),
@@ -281,11 +284,9 @@ public class MainActivity extends FragmentActivity implements
 							Toast.LENGTH_SHORT).show();
 					return;
 				} else {
-					if (((String) verifyResult[1]).equals("Ready")) {
-						db.insertSwitch(id, bulbs.get(curNavPos).getNumber());
-						mDrawerList.setAdapter(new ArrayAdapter<String>(this,
-								R.layout.drawer_list_item, db.getSwitches()));
-					}
+					db.insertSwitch(id, bulbs.get(curNavPos).getNumber());
+					mDrawerList.setAdapter(new ArrayAdapter<String>(this,
+							R.layout.drawer_list_item, db.getSwitches()));
 				}
 			}
 		}
@@ -307,25 +308,50 @@ public class MainActivity extends FragmentActivity implements
 		return out;
 	}
 
-	private Object[] verifyTag(Intent intent) throws IOException {
+	@SuppressWarnings("deprecation")
+	private Object[] verifyTag(Intent intent) {
 		Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
 		Ndef ndef = Ndef.get(tag);
 		if (ndef != null) {
-			ndef.connect();
-			if (!ndef.isWritable()) {
-				if (!intent.getType().equals("tagahue/switch")) {
-					ndef.close();
-					return new Object[] { false, "Key not writable." };
+			try {
+				ndef.connect();
+				if (!ndef.isWritable()) {
+					if (!intent.getType().equals("tagahue/switch")) {
+						ndef.close();
+						return new Object[] { false, "Key not writable." };
+					} else {
+						ndef.close();
+						return new Object[] { true, "DONE" };
+					}
 				} else {
 					ndef.close();
-					return new Object[] { true, "DONE" };
+					return new Object[] { true, "READY" };
 				}
-			} else {
-				ndef.close();
-				return new Object[] { true, "Ready" };
+			} catch (IOException e) {
+				return new Object[] { false, "Error reading key." };
 			}
 		} else {
-			return new Object[] { false, "Error reading key." };
+			if (NdefFormatable.get(tag) == null) {
+				return new Object[] { false, "Error reading key." };
+			} else {
+		        byte[] blank = new byte[0];
+		        NdefRecord blankRecord = new NdefRecord(NdefRecord.TNF_EMPTY, blank, blank, blank);		 
+				NdefFormatable ndefF = NdefFormatable.get(tag);
+				try {
+					ndefF.connect();
+			        NdefMessage message = new NdefMessage(new NdefRecord[] { blankRecord});
+
+					ndefF.format(message);
+					ndefF.close();
+					return new Object[] { true, "READY" };
+				} catch (IOException e) {
+					e.printStackTrace();
+					return new Object[] { false, "Error reading key." };
+				} catch (FormatException e) {
+					e.printStackTrace();
+					return new Object[] { false, "Error reading key." };
+				}
+			}
 		}
 	}
 
