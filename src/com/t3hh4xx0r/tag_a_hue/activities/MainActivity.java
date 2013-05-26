@@ -12,6 +12,7 @@ import android.app.PendingIntent;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
+import android.graphics.PorterDuff;
 import android.nfc.FormatException;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
@@ -27,8 +28,11 @@ import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import com.t3hh4xx0r.openhuesdk.sdk.PreferencesManager;
@@ -37,30 +41,33 @@ import com.t3hh4xx0r.tag_a_hue.DBAdapter;
 import com.t3hh4xx0r.tag_a_hue.R;
 import com.t3hh4xx0r.tag_a_hue.fragments.BulbFragment;
 
-public class MainActivity extends FragmentActivity implements OnNavigationListener {
+public class MainActivity extends FragmentActivity implements
+		OnNavigationListener {
 	ArrayList<Bulb> bulbs;
 	PreferencesManager pMan;
 	private static final String STATE_SELECTED_NAVIGATION_ITEM = "selected_navigation_item";
 	private NfcAdapter mAdapter;
 	private PendingIntent mPendingIntent;
 	int curNavPos;
-    private DrawerLayout mDrawerLayout;
-    private ListView mDrawerList;
-    ActionBarDrawerToggle mDrawerToggle;
-
+	private DrawerLayout mDrawerLayout;
+	private ListView mDrawerList;
+	ActionBarDrawerToggle mDrawerToggle;
+	private Spinner spinner;
+	DBAdapter db;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-        mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
-        mDrawerList = (ListView) findViewById(R.id.left_drawer);
-        mDrawerLayout.setDrawerShadow(R.drawable.drawer_shadow, GravityCompat.START);
-
+		mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+		mDrawerList = (ListView) findViewById(R.id.left_drawer);
+		mDrawerLayout.setDrawerShadow(R.drawable.drawer_shadow,
+				GravityCompat.START);
+		spinner = (Spinner) findViewById(R.id.spinner);
 		final ActionBar actionBar = getActionBar();
 		actionBar.setDisplayShowTitleEnabled(false);
 		actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_LIST);
-        getActionBar().setDisplayHomeAsUpEnabled(true);
-        getActionBar().setHomeButtonEnabled(true);
+		getActionBar().setDisplayHomeAsUpEnabled(true);
+		getActionBar().setHomeButtonEnabled(true);
 		pMan = new PreferencesManager(this);
 		bulbs = pMan.getBulbs();
 
@@ -69,32 +76,51 @@ public class MainActivity extends FragmentActivity implements OnNavigationListen
 			bulbNames[i] = bulbs.get(i).getName();
 		}
 		setNavItems(bulbNames, -1);
-		
+
 		mAdapter = NfcAdapter.getDefaultAdapter(this);
 
 		mPendingIntent = PendingIntent.getActivity(this, 0, new Intent(this,
 				getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), 0);
-		
-        mDrawerToggle = new ActionBarDrawerToggle(
-                this,                  /* host Activity */
-                mDrawerLayout,         /* DrawerLayout object */
-                R.drawable.ic_drawer,  /* nav drawer image to replace 'Up' caret */
-                R.string.app_name,  /* "open drawer" description for accessibility */
-                R.string.app_name  /* "close drawer" description for accessibility */
-                ) {
-            public void onDrawerClosed(View view) {
-                invalidateOptionsMenu(); // creates call to onPrepareOptionsMenu()
-            }
 
-            public void onDrawerOpened(View drawerView) {
-                invalidateOptionsMenu(); // creates call to onPrepareOptionsMenu()
-            }
-        };
-        DBAdapter db = new DBAdapter(this);
-        db.open();
-        mDrawerLayout.setDrawerListener(mDrawerToggle);
-        mDrawerList.setAdapter(new ArrayAdapter<String>(this,
-                R.layout.drawer_list_item, db.getSwitches()));
+		mDrawerToggle = new ActionBarDrawerToggle(this, mDrawerLayout,
+				R.drawable.ic_drawer, R.string.app_name, R.string.app_name) {
+			public void onDrawerClosed(View view) {
+			}
+
+			public void onDrawerOpened(View drawerView) {
+			}
+		};
+		db = new DBAdapter(this);
+		db.open();
+		mDrawerLayout.setDrawerListener(mDrawerToggle);
+		mDrawerList.setAdapter(new ArrayAdapter<String>(this,
+				R.layout.drawer_list_item, db.getSwitchesForBulb(bulbs.get(0))));
+		ArrayAdapter<String> dataAdapter = new ArrayAdapter<String>(this,
+				R.layout.drawer_list_item, getBulbsAsStrings());
+		dataAdapter
+				.setDropDownViewResource(R.layout.simple_spinner_dropdown_item);
+		spinner.setAdapter(dataAdapter);
+		spinner.setOnItemSelectedListener(new OnItemSelectedListener() {
+			@Override
+			public void onItemSelected(AdapterView<?> arg0, View v,
+					int p, long arg3) {
+				mDrawerList.setAdapter(new ArrayAdapter<String>(v.getContext(),
+						R.layout.drawer_list_item, db.getSwitchesForBulb(bulbs.get(p))));
+			}
+
+			@Override
+			public void onNothingSelected(AdapterView<?> arg0) {
+			}
+		});
+
+	}
+
+	private ArrayList<String> getBulbsAsStrings() {
+		ArrayList<String> res = new ArrayList<String>();
+		for (int i = 0; i < bulbs.size(); i++) {
+			res.add(bulbs.get(i).getName());
+		}
+		return res;
 	}
 
 	@Override
@@ -108,7 +134,7 @@ public class MainActivity extends FragmentActivity implements OnNavigationListen
 		curNavPos = position;
 		return true;
 	}
-	
+
 	@Override
 	public void onRestoreInstanceState(Bundle savedInstanceState) {
 		if (savedInstanceState.containsKey(STATE_SELECTED_NAVIGATION_ITEM)) {
@@ -128,11 +154,11 @@ public class MainActivity extends FragmentActivity implements OnNavigationListen
 			@Override
 			public void run() {
 				getActionBar().setListNavigationCallbacks(
-						new ArrayAdapter<String>(
-								MainActivity.this.getActionBar().getThemedContext(),
+						new ArrayAdapter<String>(MainActivity.this
+								.getActionBar().getThemedContext(),
 								android.R.layout.simple_list_item_1,
 								android.R.id.text1, bulbNames),
-								MainActivity.this);
+						MainActivity.this);
 				if (pos != -1) {
 					getActionBar().setSelectedNavigationItem(pos);
 				}
@@ -140,20 +166,20 @@ public class MainActivity extends FragmentActivity implements OnNavigationListen
 		});
 	}
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        if (mDrawerToggle.onOptionsItemSelected(item)) {
-          return true;
-        }
-        return super.onOptionsItemSelected(item);
-    }
-    
-    @Override
-    protected void onPostCreate(Bundle savedInstanceState) {
-        super.onPostCreate(savedInstanceState);
-        mDrawerToggle.syncState();
-    }
-    
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		if (mDrawerToggle.onOptionsItemSelected(item)) {
+			return true;
+		}
+		return super.onOptionsItemSelected(item);
+	}
+
+	@Override
+	protected void onPostCreate(Bundle savedInstanceState) {
+		super.onPostCreate(savedInstanceState);
+		mDrawerToggle.syncState();
+	}
+
 	@Override
 	public void onNewIntent(Intent intent) {
 		setIntent(intent);
@@ -180,34 +206,38 @@ public class MainActivity extends FragmentActivity implements OnNavigationListen
 
 	private void resolveIntent(final Intent intent) throws IOException {
 		final byte[] tagId = intent.getByteArrayExtra(NfcAdapter.EXTRA_ID);
-		
+
 		if (tagId != null) {
 			final String id = byteArrayToHexString(tagId);
 			AlertDialog.Builder b = new Builder(this);
 			b.setMessage("Tag Found");
-			b.setMessage("Please keep your device connected to the tag until the process is over.\n\nAssociate this tag with Bulb \"" + bulbs.get(curNavPos).getName() + "\"?");
-			b.setPositiveButton("Yes", new OnClickListener() {				
+			b.setMessage("Please keep your device connected to the tag until the process is over.\n\nAssociate this tag with Bulb \""
+					+ bulbs.get(curNavPos).getName() + "\"?");
+			b.setPositiveButton("Yes", new OnClickListener() {
 				@Override
 				public void onClick(DialogInterface d, int p) {
 					try {
 						finishTag(intent, id);
 					} catch (IOException e) {
-						Toast.makeText(MainActivity.this, "Unable to connect to tag. Be sure it is still touching the scanner.", Toast.LENGTH_LONG).show();
+						Toast.makeText(
+								MainActivity.this,
+								"Unable to connect to tag. Be sure it is still touching the scanner.",
+								Toast.LENGTH_LONG).show();
 					}
 					d.dismiss();
 				}
 			});
-			b.setNegativeButton("No", new OnClickListener() {				
+			b.setNegativeButton("No", new OnClickListener() {
 				@Override
 				public void onClick(DialogInterface d, int arg1) {
 					d.dismiss();
 				}
 			});
-			
+
 			b.create().show();
 		}
 	}
-	
+
 	public void finishTag(Intent intent, String id) throws IOException {
 		final Object[] verifyResult = verifyTag(intent);
 		if (!((Boolean) verifyResult[0])) {
@@ -224,20 +254,16 @@ public class MainActivity extends FragmentActivity implements OnNavigationListen
 							Toast.LENGTH_SHORT).show();
 					return;
 				} else {
-					if (((String) verifyResult[1])
-							.equals("Ready")) {
-						DBAdapter db = new DBAdapter(MainActivity.this);
-						db.open();
+					if (((String) verifyResult[1]).equals("Ready")) {
 						db.insertSwitch(id, bulbs.get(curNavPos).getNumber());
 						mDrawerList.setAdapter(new ArrayAdapter<String>(this,
 								R.layout.drawer_list_item, db.getSwitches()));
-						db.close();
 					}
 				}
 			}
 		}
 	}
-	
+
 	static String byteArrayToHexString(byte[] inarray) {
 		int i, j, in;
 		String[] hex = { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A",
@@ -253,7 +279,7 @@ public class MainActivity extends FragmentActivity implements OnNavigationListen
 		}
 		return out;
 	}
-	
+
 	private Object[] verifyTag(Intent intent) throws IOException {
 		Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
 		Ndef ndef = Ndef.get(tag);
@@ -275,15 +301,14 @@ public class MainActivity extends FragmentActivity implements OnNavigationListen
 			return new Object[] { false, "Error reading key." };
 		}
 	}
-	
+
 	private boolean writeTag(Tag tag) {
 		NdefMessage message;
 		if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN) {
 			message = new NdefMessage(NdefRecord.createMime("tagahue/switch",
 					new byte[0]));
 		} else {
-			message = new NdefMessage(new NdefRecord[] {
-					createMimeRecord(
+			message = new NdefMessage(new NdefRecord[] { createMimeRecord(
 					"tagahue/switch", new byte[0]) });
 		}
 
@@ -346,6 +371,5 @@ public class MainActivity extends FragmentActivity implements OnNavigationListen
 			return false;
 		}
 	}
-
 
 }

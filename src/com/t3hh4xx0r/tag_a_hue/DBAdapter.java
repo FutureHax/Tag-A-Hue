@@ -2,6 +2,8 @@ package com.t3hh4xx0r.tag_a_hue;
 
 import java.util.ArrayList;
 
+import com.t3hh4xx0r.openhuesdk.sdk.objects.Bulb;
+
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -87,6 +89,16 @@ public class DBAdapter {
 		ArrayList<String> res = new ArrayList<String>();
 		Cursor mCursor = db.query(SWICTHES, new String[] {BULB, VALUE}, null,
 				null, null, null, null, null);
+		while (mCursor.moveToNext()) {
+			res.add(mCursor.getString(1));
+		}
+		return res;
+	}
+
+	public ArrayList<String> getSwitchesForBulb(Bulb bulb) {
+		ArrayList<String> res = new ArrayList<String>();
+		Cursor mCursor = db.query(SWICTHES, new String[] {BULB, VALUE}, BULB + " = ? ",
+				new String[] { bulb.getNumber() }, null, null, null, null);
 		while (mCursor.moveToNext()) {
 			res.add(mCursor.getString(1));
 		}
