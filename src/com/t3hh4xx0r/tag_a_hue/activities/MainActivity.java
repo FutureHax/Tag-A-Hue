@@ -142,6 +142,7 @@ public class MainActivity extends FragmentActivity implements
 		getSupportFragmentManager().beginTransaction()
 				.replace(R.id.container, fragment).commit();
 		curNavPos = position;
+    	mDrawerLayout.closeDrawer(GravityCompat.START);
 		return true;
 	}
 
@@ -230,6 +231,7 @@ public class MainActivity extends FragmentActivity implements
 	}
 
 	private void resolveIntent(final Intent intent) throws IOException {
+    	mDrawerLayout.closeDrawer(GravityCompat.START);
 		final byte[] tagId = intent.getByteArrayExtra(NfcAdapter.EXTRA_ID);
 
 		if (tagId != null) {
