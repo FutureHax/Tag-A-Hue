@@ -22,6 +22,7 @@
 			android:textColor="@android:color/white"
 			android:gravity="center"
 			android:textStyle="bold"
+			android:paddingTop="7dp"
             android:text="Switches For"
             android:textAppearance="?android:attr/textAppearanceLarge" />
         

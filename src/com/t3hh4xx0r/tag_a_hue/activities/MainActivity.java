@@ -12,7 +12,6 @@ import android.app.PendingIntent;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
-import android.graphics.PorterDuff;
 import android.nfc.FormatException;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
@@ -26,6 +25,7 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
@@ -37,8 +37,10 @@ import android.widget.Toast;
 
 import com.t3hh4xx0r.openhuesdk.sdk.PreferencesManager;
 import com.t3hh4xx0r.openhuesdk.sdk.objects.Bulb;
+import com.t3hh4xx0r.tag_a_hue.ChangeLogDialog;
 import com.t3hh4xx0r.tag_a_hue.DBAdapter;
 import com.t3hh4xx0r.tag_a_hue.R;
+import com.t3hh4xx0r.tag_a_hue.RateMeMaybe;
 import com.t3hh4xx0r.tag_a_hue.fragments.BulbFragment;
 
 public class MainActivity extends FragmentActivity implements
@@ -112,6 +114,14 @@ public class MainActivity extends FragmentActivity implements
 			public void onNothingSelected(AdapterView<?> arg0) {
 			}
 		});
+		
+		ChangeLogDialog.show(this);
+		RateMeMaybe rmm = new RateMeMaybe(this);
+		rmm.setPromptMinimums(0, 0, 10, 7);
+		rmm.setDialogMessage("If you like this app, please take a moment to comment and rate it on Google Play. Thank you!");
+		rmm.setDialogTitle("Rate this app?");
+		rmm.setPositiveBtn("Sure!");
+		rmm.run();
 
 	}
 
@@ -170,8 +180,23 @@ public class MainActivity extends FragmentActivity implements
 	public boolean onOptionsItemSelected(MenuItem item) {
 		if (mDrawerToggle.onOptionsItemSelected(item)) {
 			return true;
+		} else if (item.getItemId() == R.id.action_help) {
+			showHelp();
 		}
 		return super.onOptionsItemSelected(item);
+	}
+
+	private void showHelp() {
+		AlertDialog.Builder b = new Builder(this);
+		b.setTitle("Help!");
+		b.setMessage("Select a bulb from the dropdown. Once selected, scan a compatible NFC tag. After agreeing to the prompt, the app will write a small amount of data to the tag. When this tag is scanned next, the app will toggle the state of the bulb the tag was associated with.\n\nTo the left in the nav drawer you can find a list of tags associated with each bulb.\n\n**REMEMBER**\nThe bulb must physically be on for this to work. The app is only able to control the software state of the bulb.");
+		b.create().show();
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		getMenuInflater().inflate(R.menu.main, menu);
+		return true;
 	}
 
 	@Override
