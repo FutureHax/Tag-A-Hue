@@ -3,6 +3,7 @@ package com.t3hh4xx0r.tag_a_hue.activities;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import android.app.ActionBar;
 import android.app.ActionBar.OnNavigationListener;
@@ -25,6 +26,7 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -42,6 +44,8 @@ import com.t3hh4xx0r.tag_a_hue.DBAdapter;
 import com.t3hh4xx0r.tag_a_hue.R;
 import com.t3hh4xx0r.tag_a_hue.RateMeMaybe;
 import com.t3hh4xx0r.tag_a_hue.fragments.BulbFragment;
+import com.t3hh4xx0r.tag_a_hue.fragments.GroupFragment;
+import com.t3hh4xx0r.tag_a_hue.fragments.NewGroupFragment;
 
 public class MainActivity extends FragmentActivity implements
 		OnNavigationListener {
@@ -56,6 +60,7 @@ public class MainActivity extends FragmentActivity implements
 	ActionBarDrawerToggle mDrawerToggle;
 	private Spinner spinner;
 	DBAdapter db;
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -72,12 +77,8 @@ public class MainActivity extends FragmentActivity implements
 		getActionBar().setHomeButtonEnabled(true);
 		pMan = new PreferencesManager(this);
 		bulbs = pMan.getBulbs();
-
-		String[] bulbNames = new String[bulbs.size()];
-		for (int i = 0; i < bulbs.size(); i++) {
-			bulbNames[i] = bulbs.get(i).getName();
-		}
-		setNavItems(bulbNames, -1);
+	
+		setNavItems(-1);
 
 		mAdapter = NfcAdapter.getDefaultAdapter(this);
 
@@ -94,27 +95,31 @@ public class MainActivity extends FragmentActivity implements
 		};
 		db = new DBAdapter(this);
 		db.open();
-		mDrawerLayout.setDrawerListener(mDrawerToggle);
-		mDrawerList.setAdapter(new ArrayAdapter<String>(this,
-				R.layout.drawer_list_item, db.getSwitchesForBulb(bulbs.get(0))));
-		ArrayAdapter<String> dataAdapter = new ArrayAdapter<String>(this,
-				R.layout.drawer_list_item, getBulbsAsStrings());
-		dataAdapter
-				.setDropDownViewResource(R.layout.simple_spinner_dropdown_item);
-		spinner.setAdapter(dataAdapter);
-		spinner.setOnItemSelectedListener(new OnItemSelectedListener() {
-			@Override
-			public void onItemSelected(AdapterView<?> arg0, View v,
-					int p, long arg3) {
-				mDrawerList.setAdapter(new ArrayAdapter<String>(v.getContext(),
-						R.layout.drawer_list_item, db.getSwitchesForBulb(bulbs.get(p))));
-			}
+		if (bulbs.size() > 0) {
+			mDrawerLayout.setDrawerListener(mDrawerToggle);
+			mDrawerList.setAdapter(new ArrayAdapter<String>(this,
+					R.layout.drawer_list_item, db.getSwitchesForBulb(bulbs
+							.get(0))));
+			ArrayAdapter<String> dataAdapter = new ArrayAdapter<String>(this,
+					R.layout.drawer_list_item, getBulbsAsStrings());
+			dataAdapter
+					.setDropDownViewResource(R.layout.simple_spinner_dropdown_item);
+			spinner.setAdapter(dataAdapter);
+			spinner.setOnItemSelectedListener(new OnItemSelectedListener() {
+				@Override
+				public void onItemSelected(AdapterView<?> arg0, View v, int p,
+						long arg3) {
+					mDrawerList.setAdapter(new ArrayAdapter<String>(v
+							.getContext(), R.layout.drawer_list_item, db
+							.getSwitchesForBulb(bulbs.get(p))));
+				}
 
-			@Override
-			public void onNothingSelected(AdapterView<?> arg0) {
-			}
-		});
-		
+				@Override
+				public void onNothingSelected(AdapterView<?> arg0) {
+				}
+			});
+		}
+
 		ChangeLogDialog.show(this);
 		RateMeMaybe rmm = new RateMeMaybe(this);
 		rmm.setPromptMinimums(0, 0, 10, 7);
@@ -135,14 +140,25 @@ public class MainActivity extends FragmentActivity implements
 
 	@Override
 	public boolean onNavigationItemSelected(int position, long arg1) {
-		Fragment fragment = new BulbFragment();
+		Fragment fragment = null;
 		Bundle args = new Bundle();
-		args.putSerializable("bulb", bulbs.get(position));
-		fragment.setArguments(args);
-		getSupportFragmentManager().beginTransaction()
-				.replace(R.id.container, fragment).commit();
+
+		if (position == getNavItems().size() -1) {
+			fragment = new NewGroupFragment();
+		} else if (position < bulbs.size()){
+			fragment = new BulbFragment();
+			args.putSerializable("bulb", bulbs.get(position));
+		} else {
+			fragment = new GroupFragment();
+			args.putString("group", getNavItems().get(position));
+		}
+		if (fragment != null) {
+			fragment.setArguments(args);
+			getSupportFragmentManager().beginTransaction()
+			.replace(R.id.container, fragment).commit();
+		}
 		curNavPos = position;
-    	mDrawerLayout.closeDrawer(GravityCompat.START);
+		mDrawerLayout.closeDrawer(GravityCompat.START);
 		return true;
 	}
 
@@ -160,7 +176,7 @@ public class MainActivity extends FragmentActivity implements
 				.getSelectedNavigationIndex());
 	}
 
-	private void setNavItems(final String[] bulbNames, final int pos) {
+	public void setNavItems(final int pos) {
 		MainActivity.this.runOnUiThread(new Runnable() {
 			@Override
 			public void run() {
@@ -168,13 +184,26 @@ public class MainActivity extends FragmentActivity implements
 						new ArrayAdapter<String>(MainActivity.this
 								.getActionBar().getThemedContext(),
 								android.R.layout.simple_list_item_1,
-								android.R.id.text1, bulbNames),
+								android.R.id.text1, getNavItems().toArray(new String[getNavItems().size()])),
 						MainActivity.this);
 				if (pos != -1) {
 					getActionBar().setSelectedNavigationItem(pos);
 				}
 			}
 		});
+	}
+
+	public ArrayList<String> getNavItems() {
+		ArrayList<String> res = new ArrayList<String>();
+		for (Bulb b : bulbs) {
+			res.add(b.getName());
+		}
+		ArrayList<String> gNames = pMan.getGroupNames();
+		for (String name : gNames) {
+			res.add(name);
+		}
+		res.add("Create New Group");
+		return res;
 	}
 
 	@Override
@@ -231,7 +260,7 @@ public class MainActivity extends FragmentActivity implements
 	}
 
 	private void resolveIntent(final Intent intent) throws IOException {
-    	mDrawerLayout.closeDrawer(GravityCompat.START);
+		mDrawerLayout.closeDrawer(GravityCompat.START);
 		final byte[] tagId = intent.getByteArrayExtra(NfcAdapter.EXTRA_ID);
 
 		if (tagId != null) {
@@ -239,7 +268,7 @@ public class MainActivity extends FragmentActivity implements
 			AlertDialog.Builder b = new Builder(this);
 			b.setMessage("Tag Found");
 			b.setMessage("Please keep your device connected to the tag until the process is over.\n\nAssociate this tag with Bulb \""
-					+ bulbs.get(curNavPos).getName() + "\"?");
+					+ getNavItems().get(curNavPos) + "\"?");
 			b.setPositiveButton("Yes", new OnClickListener() {
 				@Override
 				public void onClick(DialogInterface d, int p) {
@@ -284,11 +313,21 @@ public class MainActivity extends FragmentActivity implements
 							Toast.LENGTH_SHORT).show();
 					return;
 				} else {
-					db.insertSwitch(id, bulbs.get(curNavPos).getNumber());
+					db.insertSwitch(id, getIdForNavPosition());
 					mDrawerList.setAdapter(new ArrayAdapter<String>(this,
 							R.layout.drawer_list_item, db.getSwitches()));
 				}
 			}
+		}
+	}
+
+	private String getIdForNavPosition() {
+		if (curNavPos == getNavItems().size()) {
+			return null;
+		} else if (curNavPos < bulbs.size()){
+			return bulbs.get(curNavPos).getNumber();
+		} else {
+			return getNavItems().get(curNavPos);
 		}
 	}
 
@@ -308,7 +347,6 @@ public class MainActivity extends FragmentActivity implements
 		return out;
 	}
 
-	@SuppressWarnings("deprecation")
 	private Object[] verifyTag(Intent intent) {
 		Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
 		Ndef ndef = Ndef.get(tag);
@@ -334,13 +372,14 @@ public class MainActivity extends FragmentActivity implements
 			if (NdefFormatable.get(tag) == null) {
 				return new Object[] { false, "Error reading key." };
 			} else {
-		        byte[] blank = new byte[0];
-		        NdefRecord blankRecord = new NdefRecord(NdefRecord.TNF_EMPTY, blank, blank, blank);		 
+				byte[] blank = new byte[0];
+				NdefRecord blankRecord = new NdefRecord(NdefRecord.TNF_EMPTY,
+						blank, blank, blank);
 				NdefFormatable ndefF = NdefFormatable.get(tag);
 				try {
 					ndefF.connect();
-			        NdefMessage message = new NdefMessage(new NdefRecord[] { blankRecord});
-
+					NdefMessage message = new NdefMessage(
+							new NdefRecord[] { blankRecord });
 					ndefF.format(message);
 					ndefF.close();
 					return new Object[] { true, "READY" };

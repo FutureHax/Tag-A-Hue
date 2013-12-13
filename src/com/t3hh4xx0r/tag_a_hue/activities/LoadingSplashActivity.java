@@ -8,6 +8,7 @@ import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.t3hh4xx0r.openhuesdk.sdk.PreferencesManager;
@@ -20,7 +21,6 @@ import com.t3hh4xx0r.openhuesdk.sdk.bulb.IBulbManager.onLightScanCompledListener
 import com.t3hh4xx0r.openhuesdk.sdk.objects.Bridge;
 import com.t3hh4xx0r.openhuesdk.sdk.objects.Bulb;
 import com.t3hh4xx0r.tag_a_hue.R;
-import com.t3hh4xx0r.tag_a_hue.R.layout;
 
 public class LoadingSplashActivity extends Activity {
 	PreferencesManager pMan;
@@ -165,12 +165,11 @@ public class LoadingSplashActivity extends Activity {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-
 		startTime = System.currentTimeMillis();
 		setContentView(R.layout.activity_splash);
 		pMan = new PreferencesManager(this);
 		if (!pMan.getUserName().isSet()) {
-			pMan.setUserName("OpenHueBase");
+			pMan.setUserName("TagAHue");
 		}
 
 		reg = new BridgeRegistrar(this, pMan.getUserName().get());
@@ -180,9 +179,9 @@ public class LoadingSplashActivity extends Activity {
 	public void registerBridge() {
 		reg.registerWithBridge(this, pMan.getBridge(),
 				Utils.getDeviceType(this), new OnBridgeRegisteredListener() {
-
 					@Override
 					public void bridgeNotReady(final String errorMessage) {
+						Log.d("REGISTERWITHBRIDGE", "NOT READY!");
 						LoadingSplashActivity.this
 								.runOnUiThread(new Runnable() {
 									@Override
@@ -211,6 +210,7 @@ public class LoadingSplashActivity extends Activity {
 
 					@Override
 					public void bridgeReady() {
+						Log.d("REGISTERWITHBRIDGE", "NOT READY!");
 						Toast.makeText(LoadingSplashActivity.this,
 								"Bridge registered", Toast.LENGTH_LONG).show();
 						getBulbs();

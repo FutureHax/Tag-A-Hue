@@ -83,6 +83,11 @@ public class SwitchActivatedActivity extends Activity {
 					return;
 				}
 			}
+			
+			for (Bulb b : pMan.getGroup(bulb)) {
+				toggleBulb(b, bulbMan);
+				Log.d("TOGGLE BULB", b.toString());
+			}
 		}
 	}
 
