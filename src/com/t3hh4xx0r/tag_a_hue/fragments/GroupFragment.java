@@ -21,7 +21,7 @@ public class GroupFragment extends Fragment {
 	String groupName;
 	ArrayList<Bulb> bulbList;
 	PreferencesManager pMan;
-	
+
 	public GroupFragment() {
 		setHasOptionsMenu(true);
 	}
@@ -29,28 +29,31 @@ public class GroupFragment extends Fragment {
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container,
 			Bundle savedInstanceState) {
-		View rootView = inflater.inflate(R.layout.fragment_group,
-				container, false);
+		View rootView = inflater.inflate(R.layout.fragment_group, container,
+				false);
 		pMan = new PreferencesManager(getActivity());
 		bulbMan = new BulbManager(getActivity(), pMan.getBridge());
 
 		groupName = (String) getArguments().getString("group");
 		bulbList = pMan.getGroup(groupName);
-		
+
 		return rootView;
 	}
-	
-	
+
 	@Override
 	public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
 		inflater.inflate(R.menu.group, menu);
 		super.onCreateOptionsMenu(menu, inflater);
 	}
-	
+
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		if (item.getItemId() == R.id.action_edit) {
-			
+			NewGroupFragment f = new NewGroupFragment();
+			Bundle b = new Bundle();
+			b.putString("group", groupName);
+			f.setArguments(b);
+			getActivity().getSupportFragmentManager().beginTransaction().replace(this.getId(), f).addToBackStack("").commit();
 		}
 		return super.onOptionsItemSelected(item);
 	}

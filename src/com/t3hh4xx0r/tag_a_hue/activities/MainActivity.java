@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Currency;
 
 import android.app.ActionBar;
 import android.app.ActionBar.OnNavigationListener;
@@ -77,7 +78,7 @@ public class MainActivity extends FragmentActivity implements
 		getActionBar().setHomeButtonEnabled(true);
 		pMan = new PreferencesManager(this);
 		bulbs = pMan.getBulbs();
-	
+
 		setNavItems(-1);
 
 		mAdapter = NfcAdapter.getDefaultAdapter(this);
@@ -98,10 +99,11 @@ public class MainActivity extends FragmentActivity implements
 		if (bulbs.size() > 0) {
 			mDrawerLayout.setDrawerListener(mDrawerToggle);
 			mDrawerList.setAdapter(new ArrayAdapter<String>(this,
-					R.layout.drawer_list_item, db.getSwitchesForBulb(bulbs
-							.get(0))));
+					R.layout.drawer_list_item, db
+							.getSwitchesForId(getIdForNavPosition(0))));
+
 			ArrayAdapter<String> dataAdapter = new ArrayAdapter<String>(this,
-					R.layout.drawer_list_item, getBulbsAsStrings());
+					R.layout.drawer_list_item, getNavItems(false));
 			dataAdapter
 					.setDropDownViewResource(R.layout.simple_spinner_dropdown_item);
 			spinner.setAdapter(dataAdapter);
@@ -111,7 +113,7 @@ public class MainActivity extends FragmentActivity implements
 						long arg3) {
 					mDrawerList.setAdapter(new ArrayAdapter<String>(v
 							.getContext(), R.layout.drawer_list_item, db
-							.getSwitchesForBulb(bulbs.get(p))));
+							.getSwitchesForId(getIdForNavPosition(p))));
 				}
 
 				@Override
@@ -130,32 +132,24 @@ public class MainActivity extends FragmentActivity implements
 
 	}
 
-	private ArrayList<String> getBulbsAsStrings() {
-		ArrayList<String> res = new ArrayList<String>();
-		for (int i = 0; i < bulbs.size(); i++) {
-			res.add(bulbs.get(i).getName());
-		}
-		return res;
-	}
-
 	@Override
 	public boolean onNavigationItemSelected(int position, long arg1) {
 		Fragment fragment = null;
 		Bundle args = new Bundle();
 
-		if (position == getNavItems().size() -1) {
+		if (position == getNavItems(true).size() - 1) {
 			fragment = new NewGroupFragment();
-		} else if (position < bulbs.size()){
+		} else if (position < bulbs.size()) {
 			fragment = new BulbFragment();
 			args.putSerializable("bulb", bulbs.get(position));
 		} else {
 			fragment = new GroupFragment();
-			args.putString("group", getNavItems().get(position));
+			args.putString("group", getNavItems(true).get(position));
 		}
 		if (fragment != null) {
 			fragment.setArguments(args);
 			getSupportFragmentManager().beginTransaction()
-			.replace(R.id.container, fragment).commit();
+					.replace(R.id.container, fragment).commit();
 		}
 		curNavPos = position;
 		mDrawerLayout.closeDrawer(GravityCompat.START);
@@ -184,7 +178,8 @@ public class MainActivity extends FragmentActivity implements
 						new ArrayAdapter<String>(MainActivity.this
 								.getActionBar().getThemedContext(),
 								android.R.layout.simple_list_item_1,
-								android.R.id.text1, getNavItems().toArray(new String[getNavItems().size()])),
+								android.R.id.text1, getNavItems(true).toArray(
+										new String[getNavItems(true).size()])),
 						MainActivity.this);
 				if (pos != -1) {
 					getActionBar().setSelectedNavigationItem(pos);
@@ -193,7 +188,7 @@ public class MainActivity extends FragmentActivity implements
 		});
 	}
 
-	public ArrayList<String> getNavItems() {
+	public ArrayList<String> getNavItems(boolean withCreate) {
 		ArrayList<String> res = new ArrayList<String>();
 		for (Bulb b : bulbs) {
 			res.add(b.getName());
@@ -202,7 +197,9 @@ public class MainActivity extends FragmentActivity implements
 		for (String name : gNames) {
 			res.add(name);
 		}
-		res.add("Create New Group");
+		if (withCreate) {
+			res.add("Create New Group");
+		}
 		return res;
 	}
 
@@ -219,7 +216,13 @@ public class MainActivity extends FragmentActivity implements
 	private void showHelp() {
 		AlertDialog.Builder b = new Builder(this);
 		b.setTitle("Help!");
-		b.setMessage("Select a bulb from the dropdown. Once selected, scan a compatible NFC tag. After agreeing to the prompt, the app will write a small amount of data to the tag. When this tag is scanned next, the app will toggle the state of the bulb the tag was associated with.\n\nTo the left in the nav drawer you can find a list of tags associated with each bulb.\n\n**REMEMBER**\nThe bulb must physically be on for this to work. The app is only able to control the software state of the bulb.");
+		b.setMessage("Select a bulb/group from the dropdown. " +
+				"Once selected, scan a compatible NFC tag. After agreeing to the prompt, " +
+				"the app will write a small amount of data to the tag. When this tag is scanned next, " +
+				"the app will toggle the state of the bulb/group the tag was associated with." +
+				"\n\nTo the left in the nav drawer you can find a list of tags associated with each bulb/group." +
+				"\n\n**REMEMBER**\nThe bulbs must physically be on for this to work. " +
+				"The app is only able to control the software state of the bulbs.");
 		b.create().show();
 	}
 
@@ -268,7 +271,7 @@ public class MainActivity extends FragmentActivity implements
 			AlertDialog.Builder b = new Builder(this);
 			b.setMessage("Tag Found");
 			b.setMessage("Please keep your device connected to the tag until the process is over.\n\nAssociate this tag with Bulb \""
-					+ getNavItems().get(curNavPos) + "\"?");
+					+ getNavItems(true).get(curNavPos) + "\"?");
 			b.setPositiveButton("Yes", new OnClickListener() {
 				@Override
 				public void onClick(DialogInterface d, int p) {
@@ -313,7 +316,7 @@ public class MainActivity extends FragmentActivity implements
 							Toast.LENGTH_SHORT).show();
 					return;
 				} else {
-					db.insertSwitch(id, getIdForNavPosition());
+					db.insertSwitch(id, getIdForNavPosition(curNavPos));
 					mDrawerList.setAdapter(new ArrayAdapter<String>(this,
 							R.layout.drawer_list_item, db.getSwitches()));
 				}
@@ -321,13 +324,13 @@ public class MainActivity extends FragmentActivity implements
 		}
 	}
 
-	private String getIdForNavPosition() {
-		if (curNavPos == getNavItems().size()) {
+	private String getIdForNavPosition(int p) {
+		if (p == getNavItems(true).size()) {
 			return null;
-		} else if (curNavPos < bulbs.size()){
-			return bulbs.get(curNavPos).getNumber();
+		} else if (p < bulbs.size()) {
+			return bulbs.get(p).getNumber();
 		} else {
-			return getNavItems().get(curNavPos);
+			return getNavItems(true).get(p);
 		}
 	}
 

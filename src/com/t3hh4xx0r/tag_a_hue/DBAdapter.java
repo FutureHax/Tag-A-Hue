@@ -95,10 +95,10 @@ public class DBAdapter {
 		return res;
 	}
 
-	public ArrayList<String> getSwitchesForBulb(Bulb bulb) {
+	public ArrayList<String> getSwitchesForId(String id) {
 		ArrayList<String> res = new ArrayList<String>();
 		Cursor mCursor = db.query(SWICTHES, new String[] {BULB, VALUE}, BULB + " = ? ",
-				new String[] { bulb.getNumber() }, null, null, null, null);
+				new String[] { id }, null, null, null, null);
 		while (mCursor.moveToNext()) {
 			res.add(mCursor.getString(1));
 		}

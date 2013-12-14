@@ -30,7 +30,7 @@ public class NewGroupFragment extends Fragment {
 		ArrayList<Bulb> bulbs;
 		Context c;
 		LayoutInflater inf;
-		
+
 		public BulbAdapter(FragmentActivity activity, ArrayList<Bulb> bulbs) {
 			c = activity;
 			this.bulbs = bulbs;
@@ -54,7 +54,8 @@ public class NewGroupFragment extends Fragment {
 
 		@Override
 		public View getView(int arg0, View arg1, ViewGroup arg2) {
-			View root = inf.inflate(android.R.layout.simple_list_item_activated_1, arg2, false);
+			View root = inf.inflate(
+					android.R.layout.simple_list_item_activated_1, arg2, false);
 			TextView text = (TextView) root.findViewById(android.R.id.text1);
 			text.setText(bulbs.get(arg0).getName());
 			return root;
@@ -66,14 +67,16 @@ public class NewGroupFragment extends Fragment {
 	PreferencesManager pMan;
 	ListView list;
 	EditText name;
-	
+	String incomingGroupNameForEdit = null;
+
 	public NewGroupFragment() {
 		setHasOptionsMenu(true);
-	}	
-	
+	}
+
 	@Override
 	public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-		inflater.inflate(R.menu.new_group, menu);
+		inflater.inflate(R.menu.new_group, menu);		
+		menu.findItem(R.id.action_delete).setVisible(getArguments().containsKey("group") ? true : false);
 		super.onCreateOptionsMenu(menu, inflater);
 	}
 
@@ -82,12 +85,10 @@ public class NewGroupFragment extends Fragment {
 			Bundle savedInstanceState) {
 		View rootView = inflater.inflate(R.layout.fragment_new_group,
 				container, false);
+
 		pMan = new PreferencesManager(getActivity());
 		bulbMan = new BulbManager(getActivity(), pMan.getBridge());
-		bulbs = pMan.getBulbs();
-		BulbAdapter listAdapter = new BulbAdapter(getActivity(), bulbs);
 		list = (ListView) rootView.findViewById(R.id.list);
-		list.setAdapter(listAdapter);
 		list.setOnItemClickListener(new OnItemClickListener() {
 			@Override
 			public void onItemClick(AdapterView<?> arg0, View v, int arg2,
@@ -95,7 +96,32 @@ public class NewGroupFragment extends Fragment {
 				v.setActivated(!v.isActivated());
 			}
 		});
-		name = (EditText) rootView.findViewById(R.id.groupName);		
+		list.postDelayed(new Runnable() {
+			
+			@Override
+			public void run() {
+				if (getArguments().containsKey("group")) {
+					for (int i = 0; i < bulbs.size(); i++) {
+						for (Bulb b2 : pMan.getGroup(incomingGroupNameForEdit)) {
+							if (b2.getName().equals(bulbs.get(i).getName())) {
+								list.getChildAt(i).setActivated(true);
+							}
+						}
+					}
+				}				
+			}
+		}, 100);
+		name = (EditText) rootView.findViewById(R.id.groupName);
+		if (getArguments().containsKey("group")) {
+			incomingGroupNameForEdit = (String) getArguments().getString(
+					"group");
+			name.setText(incomingGroupNameForEdit);
+		}
+		
+		bulbs = pMan.getBulbs();
+
+		BulbAdapter listAdapter = new BulbAdapter(getActivity(), bulbs);
+		list.setAdapter(listAdapter);
 		return rootView;
 	}
 
@@ -103,19 +129,30 @@ public class NewGroupFragment extends Fragment {
 	public boolean onOptionsItemSelected(MenuItem item) {
 		if (item.getItemId() == R.id.action_save) {
 			saveGroup();
+		} else if (item.getItemId() == R.id.action_delete) {
+			deleteGroup();
 		}
 		return super.onOptionsItemSelected(item);
 	}
 
+	private void deleteGroup() {
+		pMan.deleteGroup(incomingGroupNameForEdit);
+		((MainActivity) getActivity()).setNavItems(((MainActivity) getActivity()).getNavItems(false).size());
+	}
+
 	private void saveGroup() {
-		ArrayList<Bulb> bulbGroup = new ArrayList<Bulb>();
-		for (int i=0;i<list.getChildCount();i++) {
-			if (list.getChildAt(i).isActivated()) {
-				bulbGroup.add(bulbs.get(i));
+		if (!bulbs.isEmpty()) {
+			ArrayList<Bulb> bulbGroup = new ArrayList<Bulb>();
+			for (int i = 0; i < list.getChildCount(); i++) {
+				if (list.getChildAt(i).isActivated()) {
+					bulbGroup.add(bulbs.get(i));
+				}
 			}
+			pMan.storeGroup(name.getText().toString(), bulbGroup);
+
+			((MainActivity) getActivity())
+					.setNavItems(((MainActivity) getActivity()).getNavItems(
+							true).size() - 2);
 		}
-		pMan.storeGroup(name.getText().toString(), bulbGroup);
-		
-		((MainActivity) getActivity()).setNavItems(((MainActivity) getActivity()).getNavItems().size() -2);
 	}
 }
