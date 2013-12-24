@@ -11,7 +11,7 @@ import android.preference.PreferenceManager;
 public class ChangeLogDialog {
 
 	private static String changelog_PREFIX = "changelog_";
-	private static final String CHANGELOG = "-Full group functionality! If possible, go back and edit those reviews?";
+	private static final String CHANGELOG = "-New icon thanks to OffCorner Dev -\n\nFull group functionality! If possible, go back and edit those reviews?";
 
 	private static PackageInfo getPackageInfo(Activity a) {
 		PackageInfo pi = null;
